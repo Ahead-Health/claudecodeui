@@ -139,12 +139,24 @@ async function spawnGemini(command, options = {}, ws) {
     args.push('--model', modelToUse);
     args.push('--output-format', 'stream-json');
 
-    // Handle approval modes and allowed tools
-    if (settings.skipPermissions || options.skipPermissions || permissionMode === 'yolo') {
+    // Handle approval modes and allowed tools.
+    //
+    // Default behaviour change vs. upstream: when no explicit mode is set,
+    // we pass --yolo so headless gemini sessions can use shell + edit tools.
+    // Without this, the model gets `Tool "run_shell_command" not found.
+    // Did you mean one of: "grep_search", "invoke_agent", "read_file"?`
+    // because un-approved tools effectively disappear from the registry.
+    // Trust posture matches Claude's: each worktree is sandboxed under the
+    // user's home, IAP gates the subdomain, and we only allowlist what's
+    // safe (no remote-write, no destructive system ops). The user can still
+    // pick `plan` mode in the UI if they want read-only.
+    const effectiveMode = permissionMode
+        || (settings.skipPermissions || options.skipPermissions ? 'yolo' : 'yolo');
+    if (effectiveMode === 'yolo') {
         args.push('--yolo');
-    } else if (permissionMode === 'auto_edit') {
+    } else if (effectiveMode === 'auto_edit') {
         args.push('--approval-mode', 'auto_edit');
-    } else if (permissionMode === 'plan') {
+    } else if (effectiveMode === 'plan') {
         args.push('--approval-mode', 'plan');
     }
 
