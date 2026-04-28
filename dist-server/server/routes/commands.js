@@ -25,12 +25,30 @@ async function scanCommandsDirectory(dir, baseDir, namespace) {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
-            if (entry.isDirectory()) {
+            // Resolve symlinks via stat() so a `.claude/commands/<name>.md` symlink
+            // (e.g. shipped by @ahead-health/core's postinstall, which mirrors each
+            // skill's SKILL.md into commands/) is treated the same as a real file.
+            // Vanilla isFile() returns false for symlinks; without the fallback all
+            // ahead-* slash commands disappear from autocomplete.
+            let isRegularFile = entry.isFile();
+            let isDirectoryEntry = entry.isDirectory();
+            if (entry.isSymbolicLink()) {
+                try {
+                    const target = await fs.stat(fullPath);
+                    isRegularFile = target.isFile();
+                    isDirectoryEntry = target.isDirectory();
+                }
+                catch {
+                    // Dangling symlink — skip silently.
+                    continue;
+                }
+            }
+            if (isDirectoryEntry) {
                 // Recursively scan subdirectories
                 const subCommands = await scanCommandsDirectory(fullPath, baseDir, namespace);
                 commands.push(...subCommands);
             }
-            else if (entry.isFile() && entry.name.endsWith('.md')) {
+            else if (isRegularFile && entry.name.endsWith('.md')) {
                 // Parse markdown file for metadata
                 try {
                     const content = await fs.readFile(fullPath, 'utf8');
