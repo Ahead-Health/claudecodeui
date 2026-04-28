@@ -41,7 +41,7 @@
     "release": "./release.sh",
     "prepublishOnly": "npm run build",
     "postinstall": "node scripts/fix-node-pty.js",
-    "prepare": "node -e \"try { require('fs').accessSync('.husky'); require('child_process').execSync('husky', { stdio: 'inherit' }); } catch {} require('child_process').execSync('npm run build', { stdio: 'inherit' });\"",
+    "prepare": "node -e \"try { require('fs').accessSync('.husky'); require('child_process').execSync('husky', { stdio: 'inherit' }); } catch {}\"",
     "update:platform": "./update-platform.sh"
   },
   "keywords": [

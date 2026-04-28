@@ -7,8 +7,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Build outputs
-dist/
-dist-server/
+# Note: dist/ and dist-server/ are intentionally TRACKED in this fork.
+# Upstream installs from npm registry where the published tarball includes
+# the build, but our consumers install via `npm install -g github:Ahead-Health/...`
+# and global git-URL installs don't install devDependencies — so prepare
+# scripts can't run the vite/tsc build. Shipping pre-built output side-steps
+# the whole problem. Run `npm run build` before pushing.
 dist-ssr/
 build/
 out/
