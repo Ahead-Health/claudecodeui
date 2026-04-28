@@ -203,6 +203,34 @@ export function useProjectsState({
     }
   }, [isLoadingProjects, projects, selectedProject, sessionId]);
 
+  // Auto-select a project named in the URL via `?project=<key>`. Matches
+  // against the trailing path segment (e.g. `marketing-site-kjdp3w`) OR the
+  // raw `project.name` (the path-encoded id used by the backend). Once we
+  // find a match we strip the param from the URL so a refresh doesn't lock
+  // the user in. Useful for deep-linking from external dashboards.
+  useEffect(() => {
+    if (isLoadingProjects || projects.length === 0 || selectedProject || sessionId) return;
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('project');
+    if (!target) return;
+    const match = projects.find((project) => {
+      if (project.name === target) return true;
+      const dirName = project.path?.split('/').filter(Boolean).pop();
+      return dirName === target;
+    });
+    if (match) {
+      setSelectedProject(match);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('project');
+        window.history.replaceState({}, '', url.toString());
+      } catch {
+        // ignore; URL cleanup is cosmetic
+      }
+    }
+  }, [isLoadingProjects, projects, selectedProject, sessionId]);
+
   useEffect(() => {
     if (!latestMessage) {
       return;
